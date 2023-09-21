@@ -9,6 +9,7 @@
   const relay = "wss://yabu.me";
   const hashtag = "markostr";
   const here = window.location.href;
+  const evilWord = 'constructor';
 
   let npub = store.npub ?? "";
   let fetchedCount = 0;
@@ -52,12 +53,13 @@
     }
 
     update({ trainingData: input, trainingDataSize: fetchedCount });
-    markov = new MarkovChain(input);
+    markov = new MarkovChain(input.replaceAll(evilWord, ''));
   };
 
   const loadModel = async () => {
     fetchedCount = store.trainingDataSize ?? NaN;
-    markov = new MarkovChain(store.trainingData ?? "");
+    const data = store.trainingData ?? ""
+    markov = new MarkovChain(data.replaceAll(evilWord, ''));
   };
 
   const generateSentence = () => {
@@ -105,6 +107,13 @@
       ws.close();
     }, timeoutDuration);
   };
+
+
+  function errorHandling(error: any): string {
+    throw error;
+
+    return error.message;
+  }
 </script>
 
 <main>
@@ -153,7 +162,7 @@
       </div>
     {/if}
   {:catch error}
-    <div class="error">エラーが発生しました: {error.message}</div>
+    <div class="error">エラーが発生しました: {errorHandling(error)}</div>
   {/await}
 </main>
 
