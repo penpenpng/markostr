@@ -11,6 +11,7 @@
   const here = window.location.href;
   const likeUrl = /[a-zA-Z]+:\/\/\S*/g;
   const likeBech = /(note1|npub1|nprofile1|nevent1)\w*/g;
+  const likeNip21 = /nostr:\w*/g;
   const likeCustomEmoji = /:\w+:/g;
 
   // @ts-ignore
@@ -65,6 +66,7 @@
       content
         .replace(likeUrl, "")
         .replace(likeBech, "")
+        .replace(likeNip21, "")
         .replace(likeCustomEmoji, "")
         .trim() + "\n"
     );
