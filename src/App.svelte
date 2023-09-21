@@ -4,17 +4,20 @@
   import { nip19 } from "nostr-tools";
   import { update, get } from "./storage";
   import type * as Nostr from "nostr-typedef";
-  
+
   const store = get();
   const relay = "wss://yabu.me";
   const hashtag = "markostr";
   const here = window.location.href;
 
+  // @ts-ignore
   MarkovChain.prototype.makeDic = function (data) {
+    // @ts-ignore
     const morphemes = this.nonoise(data);
     const lines = morphemes.split("。");
     const morpheme = Object.create(null);
     for (const line of lines) {
+      // @ts-ignore
       const words = this.segmenter.segment(line);
       if (!morpheme["_BOS_"]) {
         morpheme["_BOS_"] = [];
@@ -34,7 +37,7 @@
       }
     }
     return morpheme;
-  }
+  };
 
   let npub = store.npub ?? "";
   let fetchedCount = 0;
@@ -75,7 +78,7 @@
     const regex = /\b[a-zA-Z]+:\/\/[^\s]*\b/g;
     for await (const { content } of iter) {
       fetchedCount = fetchedCount + 1;
-      input += content.replace(regex, '');
+      input += content.replace(regex, "");
     }
 
     update({ trainingData: input, trainingDataSize: fetchedCount });
@@ -127,18 +130,11 @@
     };
     ws.onmessage = (e) => {
       ws.close();
-    }
+    };
     setTimeout(() => {
       ws.close();
     }, timeoutDuration);
   };
-
-
-  function errorHandling(error: any): string {
-    throw error;
-
-    return error.message;
-  }
 </script>
 
 <main>
@@ -187,7 +183,7 @@
       </div>
     {/if}
   {:catch error}
-    <div class="error">エラーが発生しました: {errorHandling(error)}</div>
+    <div class="error">エラーが発生しました: {error.message}</div>
   {/await}
 </main>
 
