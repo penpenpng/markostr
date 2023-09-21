@@ -88,7 +88,11 @@
       { kinds: [1], authors: [pubkey] },
       {}
     );
-    for await (const { content } of iter) {
+    for await (const { content, tags } of iter) {
+      if (tags.find((e) => e[0] === "t" && e[1] === hashtag)) {
+        continue;
+      }
+
       fetchedCount = fetchedCount + 1;
       input += purify(content);
     }
