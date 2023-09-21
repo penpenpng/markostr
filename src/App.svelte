@@ -18,9 +18,6 @@
 
   const fetcher = NostrFetcher.init();
 
-  const nHoursAgo = (hrs: number): number =>
-    Math.floor((Date.now() - hrs * 60 * 60 * 1000) / 1000);
-
   const getPubkey = (): string => {
     const { type, data } = nip19.decode(npub);
 
@@ -47,7 +44,7 @@
     const iter = fetcher.allEventsIterator(
       [relay],
       { kinds: [1], authors: [pubkey] },
-      { since: nHoursAgo(24) }
+      {}
     );
     for await (const { content } of iter) {
       fetchedCount = fetchedCount + 1;
@@ -68,7 +65,15 @@
   };
 
   const canPost = () => {
-    return !!(window as any).nostr && !!output;
+    return !!output && !!(window as any).nostr;
+  };
+
+  const getContent = () => `${output}\n${here} #${hashtag}`;
+
+  const copyContent = async () => {
+    try {
+      navigator.clipboard.writeText(getContent());
+    } catch {}
   };
 
   const postResult = async () => {
@@ -76,7 +81,7 @@
 
     const event = await nostr.signEvent({
       kind: 1,
-      content: `${output}\n${here} ${hashtag}`,
+      content: getContent(),
       created_at: Math.floor(Date.now() / 1000),
       tags: [
         ["t", hashtag],
@@ -132,10 +137,15 @@
     {/if}
 
     {#if output}
-      <div class="output">{output}</div>
-      <button class="action" on:click={postResult} disabled={!canPost()}
-        >投稿 (要NIP-07)</button
-      >
+      <div class="output">
+        {output}
+      </div>
+      <div class="action">
+        <button on:click={copyContent}>コピー</button>
+        <button on:click={postResult} disabled={!canPost()}
+          >投稿 (要NIP-07)</button
+        >
+      </div>
     {/if}
   {:catch error}
     <div class="error">エラーが発生しました: {error.message}</div>
