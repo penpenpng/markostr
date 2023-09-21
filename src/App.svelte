@@ -97,17 +97,13 @@
       ws.send(
         JSON.stringify(["EVENT", event] satisfies Nostr.ToRelayMessage.EVENT)
       );
-      ws.onmessage = (e) => {
-        console.log(e);
-        ws.close();
-        clearTimeout(timeout); 
-      }
-      const timeout = setTimeout(() => {
-      console.log("WebSocket timeout");
+    };
+    ws.onmessage = (e) => {
+      ws.close();
+    }
+    setTimeout(() => {
       ws.close();
     }, timeoutDuration);
-  
-    };
   };
 </script>
 
