@@ -9,7 +9,32 @@
   const relay = "wss://yabu.me";
   const hashtag = "markostr";
   const here = window.location.href;
-  const evilWord = 'constructor';
+
+  MarkovChain.prototype.makeDic = function (data) {
+    const morphemes = this.nonoise(data);
+    const lines = morphemes.split("。");
+    const morpheme = Object.create(null);
+    for (const line of lines) {
+      const words = this.segmenter.segment(line);
+      if (!morpheme["_BOS_"]) {
+        morpheme["_BOS_"] = [];
+      }
+      if (words[0]) {
+        morpheme["_BOS_"].push(words[0]);
+      }
+      for (const [index, word] of words.entries()) {
+        const nextWord = words[index + 1] ?? "_EOS_";
+        if (!morpheme[word]) {
+          morpheme[word] = [];
+        }
+        morpheme[word].push(nextWord);
+        if (word === "、") {
+          morpheme["_BOS_"].push(nextWord);
+        }
+      }
+    }
+    return morpheme;
+  }
 
   let npub = store.npub ?? "";
   let fetchedCount = 0;
@@ -54,13 +79,12 @@
     }
 
     update({ trainingData: input, trainingDataSize: fetchedCount });
-    markov = new MarkovChain(input.replaceAll(evilWord, ''));
+    markov = new MarkovChain(input);
   };
 
   const loadModel = async () => {
     fetchedCount = store.trainingDataSize ?? NaN;
-    const data = store.trainingData ?? ""
-    markov = new MarkovChain(data.replaceAll(evilWord, ''));
+    markov = new MarkovChain(store.trainingData ?? "");
   };
 
   const generateSentence = () => {
