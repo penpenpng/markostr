@@ -4,7 +4,7 @@
   import { nip19 } from "nostr-tools";
   import { update, get } from "./storage";
   import type * as Nostr from "nostr-typedef";
-
+  
   const store = get();
   const relay = "wss://yabu.me";
   const hashtag = "markostr";
@@ -91,14 +91,19 @@
     if (!event) {
       return;
     }
-
+    const timeoutDuration = 2000;
     const ws = new WebSocket(relay);
     ws.onopen = () => {
       ws.send(
         JSON.stringify(["EVENT", event] satisfies Nostr.ToRelayMessage.EVENT)
       );
-      ws.close();
     };
+    ws.onmessage = (e) => {
+      ws.close();
+    }
+    setTimeout(() => {
+      ws.close();
+    }, timeoutDuration);
   };
 </script>
 
