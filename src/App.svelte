@@ -47,9 +47,10 @@
       { kinds: [1], authors: [pubkey] },
       {}
     );
+    const regex = /\b[a-zA-Z]+:\/\/[^\s]*\b/g;
     for await (const { content } of iter) {
       fetchedCount = fetchedCount + 1;
-      input += content;
+      input += content.replace(regex, '');
     }
 
     update({ trainingData: input, trainingDataSize: fetchedCount });
