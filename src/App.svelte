@@ -9,6 +9,9 @@
   const relay = "wss://yabu.me";
   const hashtag = "markostr";
   const here = window.location.href;
+  const likeUrl = /[a-zA-Z]+:\/\/\S*/g;
+  const likeBech = /(note1|npub1|nprofile1|nevent1)\w*/g;
+  const likeCustomEmoji = /:\w+:/g;
 
   // @ts-ignore
   MarkovChain.prototype.makeDic = function (data) {
@@ -57,6 +60,16 @@
     return data;
   };
 
+  const purify = (content: string): string => {
+    return (
+      content
+        .replace(likeUrl, "")
+        .replace(likeBech, "")
+        .replace(likeCustomEmoji, "")
+        .trim() + "\n"
+    );
+  };
+
   const generateModel = async () => {
     update({ npub });
 
@@ -75,10 +88,9 @@
       { kinds: [1], authors: [pubkey] },
       {}
     );
-    const regex = /\b[a-zA-Z]+:\/\/[^\s]*\b/g;
     for await (const { content } of iter) {
       fetchedCount = fetchedCount + 1;
-      input += content.replace(regex, "");
+      input += purify(content);
     }
 
     update({ trainingData: input, trainingDataSize: fetchedCount });
@@ -91,7 +103,7 @@
   };
 
   const generateSentence = () => {
-    output = markov?.makeSentence() ?? "";
+    output = (markov?.makeSentence() ?? "").trim();
   };
 
   const canPost = () => {
