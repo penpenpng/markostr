@@ -48,6 +48,7 @@
   let output = "";
   let markov: MarkovChain | null = null;
   let generatingModel = Promise.resolve();
+  let generateItems: string[] = [];
 
   const fetcher = NostrFetcher.init();
 
@@ -110,6 +111,7 @@
 
   const generateSentence = () => {
     output = (markov?.makeSentence() ?? "").trim();
+    generateItems = [output, ...(generateItems.slice(0, 9))];
   };
 
   const canPost = () => {
@@ -199,6 +201,11 @@
           >投稿 (要NIP-07)</button
         >
       </div>
+      {#each generateItems as item}
+      <div>
+        <button on:click={() => {output = item}} class="history_button">{item}</button>
+      </div>
+      {/each}
     {/if}
   {:catch error}
     <div class="error">エラーが発生しました: {error.message}</div>
@@ -230,5 +237,10 @@
     padding: 20px;
     white-space: pre-line;
     word-break: break-all;
+  }
+
+  .history_button {
+    display: block;
+    width: 100%;
   }
 </style>
