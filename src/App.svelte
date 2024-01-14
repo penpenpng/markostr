@@ -49,6 +49,7 @@
   let trainingDataSize = store.trainingDataSize ?? 0;
   let output = "";
   let markov: MarkovChain | null = null;
+  let isGeneratingModel = false;
   let generatingModel = Promise.resolve();
   let generateItems: string[] = [];
 
@@ -73,6 +74,17 @@
         .replace(likeCustomEmoji, "")
         .trim() + "\n"
     );
+  };
+
+  const withUpdateIsGeneratingModel = async (
+    f: () => Promise<void>,
+  ): Promise<void> => {
+    try {
+      isGeneratingModel = true;
+      await f();
+    } finally {
+      isGeneratingModel = false;
+    }
   };
 
   const generateModel = async () => {
@@ -177,14 +189,16 @@
 
   <div class="action">
     <button
+      disabled={isGeneratingModel}
       on:click={async () => {
-        generatingModel = generateModel();
+        generatingModel = withUpdateIsGeneratingModel(generateModel);
       }}>マルコフモデルを生成</button
     >
-    {#if store.trainingData}
+    {#if trainingData}
       <button
+        disabled={isGeneratingModel}
         on:click={async () => {
-          generatingModel = loadModel();
+          generatingModel = withUpdateIsGeneratingModel(loadModel);
         }}>前回のマルコフモデルをロード</button
       >
     {/if}
