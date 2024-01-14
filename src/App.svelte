@@ -234,7 +234,7 @@
         >
       </div>
       {#each generateItems as item}
-        <div>
+      <div>
         <button on:click={() => {output = item}} class="history_button">{item}</button>
       </div>
       {/each}
