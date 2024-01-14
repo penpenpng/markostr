@@ -2,6 +2,7 @@ interface AppPersistedState {
   npub?: string;
   trainingDataSize?: number;
   trainingData?: string;
+  lastFetchedAt?: number;
 }
 
 const STORAGE_KEY = "data";

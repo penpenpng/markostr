@@ -2,8 +2,8 @@
   import MarkovChain from "@hideokamoto/markov-chain-tiny";
   import { NostrFetcher } from "nostr-fetch";
   import { nip19 } from "nostr-tools";
-  import { update, get } from "./storage";
   import type * as Nostr from "nostr-typedef";
+  import { get, update } from "./storage";
 
   const store = get();
   const relay = "wss://yabu.me";
@@ -44,7 +44,9 @@
   };
 
   let npub = store.npub ?? "";
+  let lastFetchedAt = store.lastFetchedAt ?? undefined;
   let fetchedCount = 0;
+  let trainingDataSize = store.trainingDataSize ?? 0;
   let output = "";
   let markov: MarkovChain | null = null;
   let generatingModel = Promise.resolve();
@@ -83,13 +85,15 @@
       throw new Error("公開鍵のパースに失敗しました");
     }
 
+    const fetchStartedAt = Math.floor(Date.now() / 1000);
     fetchedCount = 0;
 
-    let input = "";
+    // append new posts to stored training data
+    let input = store.trainingData ?? "";
     const iter = fetcher.allEventsIterator(
       [relay],
       { kinds: [1], authors: [pubkey] },
-      {}
+      { since: lastFetchedAt },
     );
     for await (const { content, tags } of iter) {
       if (tags.find((e) => e[0] === "t" && e[1] === hashtag)) {
@@ -100,12 +104,18 @@
       input += purify(content);
     }
 
-    update({ trainingData: input, trainingDataSize: fetchedCount });
+    trainingDataSize += fetchedCount
+    lastFetchedAt = fetchStartedAt;
+    update({
+      trainingData: input,
+      trainingDataSize,
+      lastFetchedAt: fetchStartedAt,
+    });
     markov = new MarkovChain(input);
   };
 
   const loadModel = async () => {
-    fetchedCount = store.trainingDataSize ?? NaN;
+    trainingDataSize = store.trainingDataSize ?? NaN;
     markov = new MarkovChain(store.trainingData ?? "");
   };
 
@@ -186,7 +196,7 @@
     {#if markov}
       <hr />
       <div>
-        {fetchedCount}件の投稿からマルコフモデルを生成しました。文章を生成できます。
+        {trainingDataSize}件の投稿からマルコフモデルを生成しました。文章を生成できます。
       </div>
       <button class="action" on:click={generateSentence}>文章を生成</button>
     {/if}
@@ -202,7 +212,7 @@
         >
       </div>
       {#each generateItems as item}
-      <div>
+        <div>
         <button on:click={() => {output = item}} class="history_button">{item}</button>
       </div>
       {/each}
