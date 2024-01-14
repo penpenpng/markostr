@@ -3,9 +3,8 @@
   import { NostrFetcher } from "nostr-fetch";
   import { nip19 } from "nostr-tools";
   import type * as Nostr from "nostr-typedef";
-  import { get, update } from "./storage";
+  import { storage, update } from "./storage";
 
-  const store = get();
   const relay = "wss://yabu.me";
   const hashtag = "markostr";
   const here = window.location.href;
@@ -43,10 +42,13 @@
     return morpheme;
   };
 
-  let npub = store.npub ?? "";
-  let lastFetchedAt = store.lastFetchedAt ?? undefined;
+  $: npub = $storage.npub ?? "";
+  $: lastFetchedAt = $storage.lastFetchedAt ?? undefined;
+  $: trainingData = $storage.trainingData ?? "";
+  $: trainingDataSize = $storage.trainingDataSize ?? 0;
   let fetchedCount = 0;
-  let trainingDataSize = store.trainingDataSize ?? 0;
+
+  $: npubInput = npub;
   let output = "";
   let markov: MarkovChain | null = null;
   let isGeneratingModel = false;
@@ -55,7 +57,7 @@
 
   const fetcher = NostrFetcher.init();
 
-  const getPubkey = (): string => {
+  const getPubkey = (npub: string): string => {
     const { type, data } = nip19.decode(npub);
 
     if (type !== "npub") {
@@ -88,24 +90,27 @@
   };
 
   const generateModel = async () => {
-    update({ npub });
+    const npubChanged = npub !== npubInput;
 
     let pubkey = "";
     try {
-      pubkey = getPubkey();
+      pubkey = getPubkey(npubInput);
     } catch {
       throw new Error("公開鍵のパースに失敗しました");
     }
 
+    // reset states if npub changed
+    let input = npubChanged ? "" : trainingData;
+    const currDataSize = npubChanged ? 0 : trainingDataSize;
+    const since = npubChanged ? undefined : lastFetchedAt;
+
     const fetchStartedAt = Math.floor(Date.now() / 1000);
     fetchedCount = 0;
 
-    // append new posts to stored training data
-    let input = store.trainingData ?? "";
     const iter = fetcher.allEventsIterator(
       [relay],
       { kinds: [1], authors: [pubkey] },
-      { since: lastFetchedAt },
+      { since },
     );
     for await (const { content, tags } of iter) {
       if (tags.find((e) => e[0] === "t" && e[1] === hashtag)) {
@@ -116,24 +121,22 @@
       input += purify(content);
     }
 
-    trainingDataSize += fetchedCount
-    lastFetchedAt = fetchStartedAt;
     update({
+      npub: npubInput,
       trainingData: input,
-      trainingDataSize,
+      trainingDataSize: currDataSize + fetchedCount,
       lastFetchedAt: fetchStartedAt,
     });
     markov = new MarkovChain(input);
   };
 
   const loadModel = async () => {
-    trainingDataSize = store.trainingDataSize ?? NaN;
-    markov = new MarkovChain(store.trainingData ?? "");
+    markov = new MarkovChain(trainingData);
   };
 
   const generateSentence = () => {
     output = (markov?.makeSentence() ?? "").trim();
-    generateItems = [output, ...(generateItems.slice(0, 9))];
+    generateItems = [output, ...generateItems.slice(0, 9)];
   };
 
   const canPost = () => {
@@ -167,7 +170,7 @@
     const ws = new WebSocket(relay);
     ws.onopen = () => {
       ws.send(
-        JSON.stringify(["EVENT", event] satisfies Nostr.ToRelayMessage.EVENT)
+        JSON.stringify(["EVENT", event] satisfies Nostr.ToRelayMessage.EVENT),
       );
     };
     ws.onmessage = (e) => {
@@ -184,7 +187,12 @@
 
   <div class="input">
     <label for="npub">公開鍵:</label>
-    <input id="npub" type="text" bind:value={npub} placeholder="npub1..." />
+    <input
+      id="npub"
+      type="text"
+      bind:value={npubInput}
+      placeholder="npub1..."
+    />
   </div>
 
   <div class="action">
