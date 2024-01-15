@@ -90,8 +90,6 @@
   };
 
   const generateModel = async () => {
-    const npubChanged = npub !== npubInput;
-
     let pubkey = "";
     try {
       pubkey = getPubkey(npubInput);
@@ -99,10 +97,11 @@
       throw new Error("公開鍵のパースに失敗しました");
     }
 
-    // reset states if npub changed
-    let input = npubChanged ? "" : trainingData;
-    const currDataSize = npubChanged ? 0 : trainingDataSize;
-    const since = npubChanged ? undefined : lastFetchedAt;
+    const shouldResetStates = npub !== npubInput || lastFetchedAt === undefined;
+
+    let input = shouldResetStates ? "" : trainingData;
+    const currDataSize = shouldResetStates ? 0 : trainingDataSize;
+    const since = shouldResetStates ? undefined : lastFetchedAt;
 
     const fetchStartedAt = Math.floor(Date.now() / 1000);
     fetchedCount = 0;
